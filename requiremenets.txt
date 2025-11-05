@@ -1,0 +1,13 @@
+pip install "fschat[model_worker,webui]"
+pip install openai # for openai LLM
+pip install termcolor
+pip install openpyxl
+pip install google-generativeai # for google PALM-2
+pip install anthropic
+
+
+pip install openpyxl
+pip install anthropic
+pip install google-generativeai # for google PALM-2
+pip install termcolor
+pip install "fschat[model_worker,webui]"
