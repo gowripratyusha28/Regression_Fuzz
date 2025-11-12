@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+logs/
+result/
+results/
+result_bkp/
+result_bkp_2/

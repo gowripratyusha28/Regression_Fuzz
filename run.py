@@ -1,6 +1,7 @@
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # for debugging
 import csv
+import time
 from fastchat.model import add_model_args
 import argparse
 import pandas as pd
@@ -20,13 +21,18 @@ httpx_logger.setLevel(logging.WARNING)
 def main(args):
     initial_seed = pd.read_csv(args.seed_path)['text'].tolist()
 
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     # openai_model = OpenAILLM(args.model_path, args.openai_key)
     openai_model = LocalVLLM(args.model_path)
     # target_model = PaLM2LLM(args.target_model, args.palm_key)
     # target_model = ClaudeLLM(args.target_model, args.claude_key)
     # target_model = OpenAILLM(args.target_model, args.openai_key)
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'    
     target_model = LocalVLLM(args.target_model)
-    roberta_model = RoBERTaPredictor('FacebookAI/roberta-base', device='cuda:0')
+    # judge_model = LocalVLLM(args.judge_model_path)
+    judge_model = target_model
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0,1' 
+    roberta_model = RoBERTaPredictor('hubert233/GPTFuzz', device='cuda:0')
 
     
     questions = []
@@ -42,9 +48,13 @@ def main(args):
         for row in reader:
             questions.append(row[1])  
             questions_str.append(row[2])  
+
+    if not os.path.exists(args.result_path):
+        os.makedirs(args.result_path)
     
     
     success_list = [0] * len(questions)
+    obtained_seeds = []
     ### pre_jail
     num = 0
     for (question,question_str) in zip(questions,questions_str):
@@ -69,17 +79,26 @@ def main(args):
             energy=args.energy,
             max_jailbreak=args.max_jailbreak,
             max_query=args.pre_query,
-            generate_in_batch=False,
-            question_id = num
+            generate_in_batch=True,
+            question_id = num,
+            judge_vllm_model=None,
+            result_file=args.result_path + f'QID:{num}-{time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())}.csv'
         )
 
 
 
         seed_new = fuzzer.run()
+        print("Question:" , num, "Question str:", question_str, "actual Question:", question, "New Seed:", seed_new)
         if seed_new:
             initial_seed.append(seed_new)
+            obtained_seeds.append({
+                'question_id': num,
+                'question': question,
+                'seed': seed_new
+            })
             success_list[num-1] = 1
-    
+    pd.DataFrame({'text': initial_seed}).to_csv('all_seeds_pre_jail.csv', index=False)
+
     ### final_jail
     num = 0
     for (question,question_str) in zip(questions,questions_str):
@@ -113,8 +132,10 @@ def main(args):
             energy=args.energy,
             max_jailbreak=args.max_jailbreak,
             max_query=args.max_query-args.pre_query,
-            generate_in_batch=False,
-            question_id = num
+            generate_in_batch=True,
+            question_id = num,
+            judge_vllm_model = None,
+            result_file=args.result_path + 'FINAL_QID:{question_id}-{time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())}.csv'
         )
         seed_new = fuzzer.run()
         if seed_new:
@@ -133,7 +154,11 @@ if __name__ == "__main__":
                         help='mutate model path')
     parser.add_argument('--target_model', type=str, default='',
                         help='The target model, openai model or open-sourced LLMs')
-    parser.add_argument('--max_query', type=int, default=1000,
+    parser.add_argument('--judge_model_path', type=str, default='meta-llama/Llama-2-7b-chat-hf',
+                        help='Judge model path for LocalVLLM')
+    parser.add_argument('--result_path', type=str, default='results/',
+                        help='result path')
+    parser.add_argument('--max_query', type=int, default=100,
                         help='The maximum number of queries')
     parser.add_argument('--max_jailbreak', type=int,
                         default=1, help='The maximum jailbreak number')

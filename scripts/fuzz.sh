@@ -21,4 +21,4 @@ mutator_model=meta-llama/Llama-3.1-8B-Instruct
 target_model=meta-llama/Llama-3.1-8B-Instruct
 
 
-time python run.py --model_path ${mutator_model} --target_model ${target_model}
+time python run.py --model_path ${mutator_model} --target_model ${target_model} --judge_model_path ${target_model}

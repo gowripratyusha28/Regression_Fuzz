@@ -151,12 +151,12 @@ class LocalLLM(LLM):
 class LocalVLLM(LLM):
     def __init__(self,
                  model_path,
-                 gpu_memory_utilization=0.3,
+                 gpu_memory_utilization=0.5,
                  system_message=None
                  ):
         super().__init__()
         self.model_path = model_path
-        MAX_MODEL_LEN = 32768
+        MAX_MODEL_LEN = 6768
         mistral_params = {
                     "tokenizer_mode": "mistral",
                     "load_format": "mistral",
@@ -167,7 +167,7 @@ class LocalVLLM(LLM):
             self.model = vllm(
                 self.model_path, gpu_memory_utilization=gpu_memory_utilization, trust_remote_code=True, dtype= torch.bfloat16, **mistral_params)
         self.model = vllm(
-            self.model_path, gpu_memory_utilization=gpu_memory_utilization, trust_remote_code=True, dtype= torch.bfloat16, tensor_parallel_size=2, max_model_len=MAX_MODEL_LEN)
+            self.model_path, gpu_memory_utilization=gpu_memory_utilization, trust_remote_code=True, dtype= torch.bfloat16, tensor_parallel_size=1, max_model_len=MAX_MODEL_LEN)
         '''
         if system_message is None and 'Llama-2' in model_path:
             # monkey patch for latest FastChat to use llama2's official system message

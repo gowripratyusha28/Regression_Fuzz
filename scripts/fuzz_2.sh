@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --account=swabhas_1716     
-#SBATCH --partition=gpu
+#SBATCH --account=swabhas_1625     
+#SBATCH --partition=nlp
 #SBATCH --time=1-10:00:00                  
 #SBATCH --mem=64GB                        
 #SBATCH --nodes=1
@@ -18,7 +18,8 @@ export VLLM_USE_FLASH_ATTENTION=0
 export HF_HOME=/project2/swabhas_1716/hf_home
 mutator_model=meta-llama/Llama-3.1-8B-Instruct
 # mutator_model=mistralai/Mistral-Nemo-Instruct-2407
-target_model=meta-llama/Llama-3.1-8B-Instruct
+# target_model=meta-llama/Llama-3.1-8B-Instruct
+target_model=meta-llama/Meta-Llama-3-8B-Instruct
 
 
-time python run.py --model_path ${mutator_model} --target_model ${target_model}
+time python run.py --model_path ${mutator_model} --target_model ${target_model} --judge_model_path ${target_model} --result_path results/fuzzing_llama_3_8b_model/ 
